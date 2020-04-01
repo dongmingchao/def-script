@@ -10,7 +10,7 @@ const base = `
 func(args1, args2) =>
 	local_var_number = 34
 	local_var_bool = false
-	local_var_str = 'local str()asdsadw[].{}:Dsa12=>'
+	local_var_str = 'local str()asdsadw'[].{}:Dsa12=>'
 	local_equal = args1
 `
 
@@ -49,7 +49,7 @@ const baseRegexs = {
 	},
 	value_type: {
 		number: /\d+/,
-		string: /'([^']+)'/,
+		string: /'(.+)'/,
 		boolean: /true|false/,
 	}
 }

@@ -36,7 +36,7 @@ export function parseIndent(onelineSource: string) {
 
 export function parseAssignment(source: string) {
   const parseValue = compose(
-    useMetaRegex(/^'([^']+)'$/, 'string', 1),
+    useMetaRegex(/^'(.+)'$/, 'string', 1),
     useMetaRegex(/^\d+$/, 'number'),
     useMetaRegex(/^true|false$/, 'boolean'),
 		useMetaRegex(/^[A-z]\w*$/, 'word'),
