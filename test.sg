@@ -1,0 +1,21 @@
+var_str = 'str'
+var_number = 12
+
+var_obj = { key1: val1 }
+var_obj2 =
+  key2: val2
+  nest_key:
+    key3: val3
+
+func(args1, args2) =>
+	local_var_number = 34
+	local_var_bool = false
+	local_var_str = 'local str()asdsadw[].{}:Dsa12=>'
+	local_equal = args1
+
+func2({ arg_key }) =>
+  arg_key
+
+func 1, '123'
+func2 (func 1, '123')
+func2 (func 1), '123'
