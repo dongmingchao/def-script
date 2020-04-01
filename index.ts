@@ -4,18 +4,32 @@
 //   readFileStr,
 // } from "https://deno.land/std/fs/mod.ts";
 import { compact, compose, concatRegex } from "./lib/lodash.ts";
-import { useMetaRegex, parseIndent, parseFunction, parseAssignment } from "./lib/parser/index.ts";
+import { useMetaRegex, parseIndent, parseFunction, parseAssignment, AST, Context } from "./lib/parser/index.ts";
+import { stringify } from "./lib/stringifier/index.ts";
 
 const base = `
+var_str = 'str'
+var_number = 12
+
 func(args1, args2) =>
 	local_var_number = 34
 	local_var_bool = false
 	local_var_str = 'local str()asdsadw'[].{}:Dsa12=>'
-	local_equal = args1
+	func(args3, args4) =>
+		local_equal = args1
+
+var_boolean = true
 `
 
 function parseExpression(program: string) {
-  compact(program.split('\n')).map(parseExpressionLine);
+	const startCtx: Context = {
+		t: 'global',
+		scope: [],
+		elements: [],
+	}
+	const afterComplieContext = compact(program.split('\n')).reduce(parseExpressionLine, [startCtx]);
+	console.log(JSON.stringify(afterComplieContext[0], null, 2));
+	console.log(stringify(afterComplieContext[0]))
 }
 
 const mixed = compose(
@@ -28,14 +42,27 @@ const mixed = compose(
 	useMetaRegex(/^\t/, 'indentation'),
 );
 
-function parseExpressionLine(onelineSource: string) {
+function parseExpressionLine(ctxs: Context[], onelineSource: string): Context[] {
 	const { indent, rest } = parseIndent(onelineSource);
+	const currContext = ctxs[indent];
 	if (is_function.test(rest)) {
-		parseFunction(rest);
+		const ast = parseFunction(rest);
+		const nContext = {
+			t: 'function',
+			scope: [],
+			elements: ast,
+		};
+		ctxs.push(nContext);
+		currContext.scope.push(nContext);
 	} else if(is_assignment.test(rest)) {
-		parseAssignment(rest);
+		const ast = parseAssignment(rest);
+		currContext.scope.push({
+			t: 'variable',
+			scope: [],
+			elements: ast,
+		})
 	}
-	console.log('-----------------------------');
+	return ctxs;
 }
 
 const baseRegexs = {

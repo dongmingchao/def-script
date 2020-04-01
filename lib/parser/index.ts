@@ -1,25 +1,41 @@
 import { compose } from "../lodash.ts";
 
 export function useMetaRegex(regexp: RegExp, kind: string, index = 0) {
-  return function (str: string) {
-    const match = regexp.exec(str)
-    if (match === null) return str;
+  return function (c: Core) {
+    const match = regexp.exec(c.source)
+    if (match === null) return c;
     else {
-      console.log({ kind, name: match[index] });
-      return str.slice(match[0].length);
+      c.ast.push({ kind, name: match[index] });
+      c.source = c.source.slice(match[0].length);
+      return c;
     }
   }
 }
 
-export function parseFunction(onelineSource: string) {
+export interface Core {
+  source: string
+  ast: AST[]
+}
+
+export interface AST {
+  kind: string
+  name: string
+}
+
+export interface Context {
+  t: string
+  scope: Context[]
+  elements: AST[]
+}
+
+export function parseFunction(source: string) {
   const starter = compose(
 		useMetaRegex(/^\) =>$/, 'declare func end'),
 		useMetaRegex(/^((, )?([A-z]\w*))+/, 'arguments'),
 		useMetaRegex(/^\(/, 'declare func start'),
 		useMetaRegex(/^[A-z]\w+/, 'word'),
   );
-  const rest = starter(onelineSource);
-  if (rest.length) throw new SyntaxError('parse function error');
+  return feedback(source, starter, 'parse function');
 }
 
 export function parseIndent(onelineSource: string) {
@@ -46,6 +62,11 @@ export function parseAssignment(source: string) {
 		useMetaRegex(/^ = /, 'operator'),
 		useMetaRegex(/^[A-z]\w*/, 'word'),
   );
-  const rest = starter(source);
-  if (rest.length) throw new SyntaxError('parse assignment error: ' + rest);
+  return feedback(source, starter, 'parse assignment');
+}
+
+function feedback(source: string, starter: (c: Core) => Core, errMsg: string) {
+  const { ast, source: rest } = starter({ source, ast: []});
+  if (rest.length) throw new SyntaxError(`${errMsg} error: ${rest}`);
+  return ast;
 }

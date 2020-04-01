@@ -2,9 +2,9 @@ export function compact(input: string[] | []) {
   return input.filter(e => e !== '' && e != null);
 }
 
-export function compose( ...f: Array<(a: string) => string> ) {
-  return function (arg: string){
-    return f.reduceRight((total: string, cur: (a: string) => string) => {
+export function compose<A>( ...f: Array<(a: A) => A> ) {
+  return function (arg: A){
+    return f.reduceRight((total: A, cur: (a: A) => A) => {
       return cur(total);
     }, arg);
   }

@@ -13,9 +13,27 @@ func(args1, args2) =>
 	local_var_str = 'local str()asdsadw[].{}:Dsa12=>'
 	local_equal = args1
 
+var_assign_func = func 1
+
+var_boolean = true
 func2({ arg_key }) =>
-  arg_key
+  ret arg_key
+  local_rest_var = 1
 
 func 1, '123'
 func2 (func 1, '123')
 func2 (func 1), '123'
+
+if var_boolean
+  func var_boolean
+else func 2
+
+switch var_number
+  case 1
+    func 1
+  case 2
+    func 2
+    fallthrough
+  case 3
+    func 3
+
