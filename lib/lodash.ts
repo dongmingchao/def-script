@@ -9,7 +9,7 @@ export type ComposeContext<A> = {
 
 export function compose<A>( ...f: ComposeContext<A>['arr'] ): (arg: A) => A {
   return function (arg: A){
-    let count = 0, ret:(A | undefined) = undefined;
+    let count = 0, ret = arg;
     while(f.length > count) {
       ret = f.reduceRight<A>((total: A, cur: (a: A) => A, curi, arr) => {
         count++;

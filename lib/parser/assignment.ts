@@ -29,13 +29,28 @@ function parseAssignment(source: string) {
 		useMetaRegex(concatRegex(['^', baseRegexs.word]), 'object key word'),
 		useMetaRegex(concatRegex(['^', baseRegexs.value_type.number]), 'object key number'),
 	)
-	const repeatComma = useMetaRegex(/^, /, 'comma', 0, function(c) {
-		this.arr.splice(1, 0, parseObject);
-		this.arr.splice(1, 0, repeatComma);
-	});
   const parseValue = compose(
-		useMetaRegex(/^ \}$/, 'object end'),
-		repeatComma,
+		useMetaRegex(/^ \}/, 'object end'),
+		function repeatComma(c) {
+			const match = /^, /.exec(c.source);
+			if (match === null) return c;
+			else {
+				c.ast.push({ kind: 'comma', name: match[0] });
+				c.source = c.source.slice(match[0].length);
+				this.arr.unshift(compose(
+					useMetaRegex(/^ \}/, 'object end'),
+					parseObject,
+					repeatComma,
+					useMetaRegex(/^\{ /, 'object start'),
+					useMetaRegex(/^[A-z]\w*$/, 'word'),
+					parseValueType,
+					useMetaRegex(/^: /, 'object seperator'),
+					useMetaRegex(concatRegex(['^', baseRegexs.word]), 'object key word'),
+					useMetaRegex(concatRegex(['^', baseRegexs.value_type.number]), 'object key number'),
+				));
+				return c;
+			}
+		},
 		parseObject,
 		useMetaRegex(/^\{ /, 'object start'),
 		useMetaRegex(/^[A-z]\w*$/, 'word'),

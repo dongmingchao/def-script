@@ -12,7 +12,7 @@ const baseRegexs = {
 	value_type: {
 		number: /\d+/,
 		string: /'(.+)'/,
-		boolean: /true|false/,
+		boolean: /(true|false)/,
 		object: /a/,
 	}
 }
@@ -35,15 +35,14 @@ baseRegexs.value_type.object = object;
 
 export { baseRegexs };
 
-export function useMetaRegex(regexp: RegExp, kind: string, index = 0, cb?: (this: ComposeContext<Core>, c: Core) => void) {
-  return function (this: ComposeContext<Core>, c: Core) {
-		// console.log(c.source, regexp);
+export function useMetaRegex(regexp: RegExp, kind: string, index = 0) {
+  return function (c: Core) {
+		console.log(c.source, regexp);
     const match = regexp.exec(c.source)
     if (match === null) return c;
     else {
       c.ast.push({ kind, name: match[index] });
 			c.source = c.source.slice(match[0].length);
-			cb && cb.call(this, c);
       return c;
     }
   }

@@ -26,13 +26,16 @@ function stringifyAssignment({elements}: Context) {
   if (vars.kind === 'object start') {
     const ret: string[] = [];
     ret.push(`let ${left}${op}${vars.name}`);
-    let base = '';
+    let prefix = '';
+    let base = prefix;
     rest.forEach(e => {
       switch(e.kind) {
+        case 'object start':
+          prefix += '\t';
         case 'comma':
           base += e.name;
           ret.push(base);
-          base = '';
+          base = prefix;
           break;
         case 'object key word':
         case 'object key number':
@@ -45,10 +48,13 @@ function stringifyAssignment({elements}: Context) {
           base += e.name;
           break;
         case 'object end':
-          ret.push(base, '}');
+          ret.push(base);
+          base = prefix + '}';
+          prefix = prefix.slice(1);
           break;
       }
     });
+    if (base !== '') ret.push(base);
     return ret;
   }
   return [];

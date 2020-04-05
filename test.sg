@@ -5,7 +5,8 @@ var_obj1 = { key1: 'val1' }
 var_obj2 = { key1: 'val1', key2: 1 }
 var_obj3 = { key1: 'val1', key2: 1, key3: true }
 var_obj4 = { key1: 'val1', key2: 1, nest_key: { key3: true } }
-var_obj5 =
+var_obj5 = { key1: 'val1', key2: 1, nest_key: { key3: true, key2: 1 }, nest_key2: { key_bool: false } }
+var_obj6 =
   key2: 'val2'
   number_key: 1
   bool_key: true

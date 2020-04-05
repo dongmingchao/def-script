@@ -10,11 +10,7 @@ import { is_assignment, parseAssignment } from "./lib/parser/assignment.ts";
 import { is_function, parseFunction } from "./lib/parser/function.ts";
 
 const base = `
-var_obj3 = { key1: 'val1', key2: 1, key3: true }
-
-func() =>
-	var_obj1 = { key1: 'val1' }
-	var_obj2 = { key1: 'val1', key2: 1 }
+var_obj4 = { key1: 'val1', key2: 1, nest_key: { key3: true, key2: 1 }, nest_key2: { key_bool: false } }
 `
 
 function parseExpression(program: string) {

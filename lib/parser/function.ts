@@ -15,10 +15,7 @@ const is_function = concatRegex([
 
 export function parseFunction(source: string) {
 	const parseWord = useMetaRegex(concatRegex(['^', baseRegexs.word]), 'word');
-	const repeatComma = useMetaRegex(/^, /, 'comma', 0, function(c) {
-		this.arr.splice(1, 0, parseWord);
-		this.arr.splice(1, 0, repeatComma);
-	});
+	const repeatComma = useMetaRegex(/^, /, 'comma', 0);
 
   const starter = compose(
 		useMetaRegex(/^\) =>$/, 'declare func end'),
