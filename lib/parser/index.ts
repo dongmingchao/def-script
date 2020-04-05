@@ -37,7 +37,7 @@ export { baseRegexs };
 
 export function useMetaRegex(regexp: RegExp, kind: string, index = 0, cb?: (this: ComposeContext<Core>, c: Core) => void) {
   return function (this: ComposeContext<Core>, c: Core) {
-		console.log(c.source, regexp);
+		// console.log(c.source, regexp);
     const match = regexp.exec(c.source)
     if (match === null) return c;
     else {
@@ -63,16 +63,6 @@ export interface Context {
   t: string
   scope: Context[]
   elements: AST[]
-}
-
-export function parseFunction(source: string) {
-  const starter = compose(
-		useMetaRegex(/^\) =>$/, 'declare func end'),
-		useMetaRegex(/^((, )?([A-z]\w*))+/, 'arguments'),
-		useMetaRegex(/^\(/, 'declare func start'),
-		useMetaRegex(/^[A-z]\w+/, 'word'),
-  );
-  return feedback(source, starter, 'parse function');
 }
 
 export function parseIndent(onelineSource: string) {

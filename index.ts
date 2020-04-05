@@ -3,16 +3,18 @@
 //   writeFileStr,
 //   readFileStr,
 // } from "https://deno.land/std/fs/mod.ts";
-import { compact, compose, concatRegex } from "./lib/lodash.ts";
-import { useMetaRegex, parseIndent, parseFunction, AST, Context } from "./lib/parser/index.ts";
+import { compact, compose } from "./lib/lodash.ts";
+import { useMetaRegex, parseIndent, AST, Context } from "./lib/parser/index.ts";
 import { stringify } from "./lib/stringifier/index.ts";
 import { is_assignment, parseAssignment } from "./lib/parser/assignment.ts";
-import { is_function } from "./lib/parser/function.ts";
+import { is_function, parseFunction } from "./lib/parser/function.ts";
 
 const base = `
-var_obj = { key1: 'val1' }
-var_obj = { key1: 'val1', key2: 1 }
-var_obj = { key1: 'val1', key2: 1, key3: true }
+var_obj3 = { key1: 'val1', key2: 1, key3: true }
+
+func() =>
+	var_obj1 = { key1: 'val1' }
+	var_obj2 = { key1: 'val1', key2: 1 }
 `
 
 function parseExpression(program: string) {
@@ -59,6 +61,5 @@ function parseExpressionLine(ctxs: Context[], onelineSource: string): Context[] 
 	return ctxs;
 }
 
-console.log(is_assignment);
-
+console.log(is_function);
 parseExpression(base);

@@ -29,3 +29,19 @@ export function concatRegex(regex: (RegExp|string)[], flags = '') {
   }, '');
   return new RegExp(sources, flags);
 }
+
+export function chunk<A>(arr: A[], size: number) {
+  if (size === 0) return [];
+  let b: A[] = [];
+  let ret: A[][] = [];
+  arr.forEach((curr, curi) => {
+    if (curi % size === 0) {
+      ret.push(b);
+      b = [];
+    }
+    b.push(curr);
+  });
+  ret.push(b);
+  ret.shift();
+  return ret;
+}

@@ -38,8 +38,8 @@ function parseAssignment(source: string) {
 		repeatComma,
 		parseObject,
 		useMetaRegex(/^\{ /, 'object start'),
-		parseValueType,
 		useMetaRegex(/^[A-z]\w*$/, 'word'),
+		parseValueType,
   );
   const starter = compose(
     parseValue,
