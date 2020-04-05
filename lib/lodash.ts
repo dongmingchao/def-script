@@ -2,11 +2,21 @@ export function compact(input: string[] | []) {
   return input.filter(e => e !== '' && e != null);
 }
 
-export function compose<A>( ...f: Array<(a: A) => A> ) {
+export type ComposeContext<A> = {
+  curi: number,
+  arr: Array<(this: ComposeContext<A>, a: A) => A>,
+};
+
+export function compose<A>( ...f: ComposeContext<A>['arr'] ): (arg: A) => A {
   return function (arg: A){
-    return f.reduceRight((total: A, cur: (a: A) => A) => {
-      return cur(total);
-    }, arg);
+    let count = 0, ret:(A | undefined) = undefined;
+    while(f.length > count) {
+      ret = f.reduceRight<A>((total: A, cur: (a: A) => A, curi, arr) => {
+        count++;
+        return cur.call({ arr, curi }, total);
+      }, arg);
+    }
+    return ret as A;
   }
 }
 

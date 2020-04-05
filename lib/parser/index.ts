@@ -1,12 +1,49 @@
-import { compose } from "../lodash.ts";
+import { compose, concatRegex, ComposeContext } from "../lodash.ts";
 
-export function useMetaRegex(regexp: RegExp, kind: string, index = 0) {
-  return function (c: Core) {
+const baseRegexs = {
+	word: /[A-z]\w*/,
+	left_parentheses: /\(/,
+	right_parentheses: /\)/,
+	arrow: / =>/,
+	indentation: /\t/,
+	operator: {
+		assignment: / = /,
+	},
+	value_type: {
+		number: /\d+/,
+		string: /'(.+)'/,
+		boolean: /true|false/,
+		object: /a/,
+	}
+}
+
+const object = concatRegex([
+	'\\{ (',
+  baseRegexs.word,
+  '|',
+  baseRegexs.value_type.number,
+	'): (',
+	baseRegexs.value_type.boolean,
+	'|',
+	baseRegexs.value_type.number,
+	'|',
+	baseRegexs.value_type.string,
+	') \\}'
+]);
+
+baseRegexs.value_type.object = object;
+
+export { baseRegexs };
+
+export function useMetaRegex(regexp: RegExp, kind: string, index = 0, cb?: (this: ComposeContext<Core>, c: Core) => void) {
+  return function (this: ComposeContext<Core>, c: Core) {
+		console.log(c.source, regexp);
     const match = regexp.exec(c.source)
     if (match === null) return c;
     else {
       c.ast.push({ kind, name: match[index] });
-      c.source = c.source.slice(match[0].length);
+			c.source = c.source.slice(match[0].length);
+			cb && cb.call(this, c);
       return c;
     }
   }
@@ -50,23 +87,10 @@ export function parseIndent(onelineSource: string) {
 	return { indent, rest };
 }
 
-export function parseAssignment(source: string) {
-  const parseValue = compose(
-    useMetaRegex(/^'(.+)'$/, 'string', 1),
-    useMetaRegex(/^\d+$/, 'number'),
-    useMetaRegex(/^true|false$/, 'boolean'),
-		useMetaRegex(/^[A-z]\w*$/, 'word'),
-  );
-  const starter = compose(
-    parseValue,
-		useMetaRegex(/^ = /, 'operator'),
-		useMetaRegex(/^[A-z]\w*/, 'word'),
-  );
-  return feedback(source, starter, 'parse assignment');
-}
-
-function feedback(source: string, starter: (c: Core) => Core, errMsg: string) {
-  const { ast, source: rest } = starter({ source, ast: []});
-  if (rest.length) throw new SyntaxError(`${errMsg} error: ${rest}`);
+export function feedback(source: string, starter: (c: Core) => Core, errMsg: string) {
+	const { ast, source: rest } = starter({ source, ast: []});
+	const pos = source.length - rest.length + 1;
+	const mark = '^'.padStart(pos);
+  if (rest.length) throw new SyntaxError(`${errMsg} error: ${rest}\n${source}\n${mark}`);
   return ast;
 }

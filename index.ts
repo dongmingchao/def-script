@@ -4,21 +4,15 @@
 //   readFileStr,
 // } from "https://deno.land/std/fs/mod.ts";
 import { compact, compose, concatRegex } from "./lib/lodash.ts";
-import { useMetaRegex, parseIndent, parseFunction, parseAssignment, AST, Context } from "./lib/parser/index.ts";
+import { useMetaRegex, parseIndent, parseFunction, AST, Context } from "./lib/parser/index.ts";
 import { stringify } from "./lib/stringifier/index.ts";
+import { is_assignment, parseAssignment } from "./lib/parser/assignment.ts";
+import { is_function } from "./lib/parser/function.ts";
 
 const base = `
-var_str = 'str'
-var_number = 12
-
-func(args1, args2) =>
-	local_var_number = 34
-	local_var_bool = false
-	local_var_str = 'local str()asdsadw'[].{}:Dsa12=>'
-	func(args3, args4) =>
-		local_equal = args1
-
-var_boolean = true
+var_obj = { key1: 'val1' }
+var_obj = { key1: 'val1', key2: 1 }
+var_obj = { key1: 'val1', key2: 1, key3: true }
 `
 
 function parseExpression(program: string) {
@@ -57,7 +51,7 @@ function parseExpressionLine(ctxs: Context[], onelineSource: string): Context[] 
 	} else if(is_assignment.test(rest)) {
 		const ast = parseAssignment(rest);
 		currContext.scope.push({
-			t: 'variable',
+			t: 'assignment',
 			scope: [],
 			elements: ast,
 		})
@@ -65,47 +59,6 @@ function parseExpressionLine(ctxs: Context[], onelineSource: string): Context[] 
 	return ctxs;
 }
 
-const baseRegexs = {
-	word: /[A-z]\w*/,
-	left_parentheses: /\(/,
-	right_parentheses: /\)/,
-	arrow: / =>/,
-	indentation: /\t/,
-	operator: {
-		assignment: / = /,
-	},
-	value_type: {
-		number: /\d+/,
-		string: /'(.+)'/,
-		boolean: /true|false/,
-	}
-}
-
-const is_function = concatRegex([
-	'^',
-	baseRegexs.word,
-	baseRegexs.left_parentheses,
-	'((, )?(', 
-	baseRegexs.word,
-	'))+',
-	baseRegexs.right_parentheses,
-	baseRegexs.arrow,
-	'$'
-]);
-
-const is_assignment = concatRegex([
-	'^',
-	baseRegexs.word,
-	baseRegexs.operator.assignment,
-	'(',
-	baseRegexs.value_type.boolean,
-	'|',
-	baseRegexs.value_type.number,
-	'|',
-	baseRegexs.value_type.string,
-	'|',
-	baseRegexs.word,
-	')$'
-])
+console.log(is_assignment);
 
 parseExpression(base);

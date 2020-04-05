@@ -6,8 +6,8 @@ export function stringify(c: Context, deep = 0) {
     case 'global':
       base += c.scope.map(e => stringify(e)).join('\n');
       break;
-    case 'variable':
-      base += stringifyVariable(c);
+    case 'assignment':
+      base += stringifyAssignment(c);
       break;
     case 'function':
       base += stringifyFunction(c, deep);
@@ -16,7 +16,7 @@ export function stringify(c: Context, deep = 0) {
   return base;
 }
 
-function stringifyVariable({elements}: Context) {
+function stringifyAssignment({elements}: Context) {
   const [{name: left}, {name: op}, {name: right}]: AST[] = elements;
   return `let ${left}${op}${right};`;
 }
