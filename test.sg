@@ -26,6 +26,11 @@ func2({ arg_key }) =>
   ret arg_key
   local_rest_var = 1
 
+var_obj3 = { key1: 'val1', key2: 1, key3: true }
+func(args1, args2) =>
+	local_var_number = 34
+	var_obj4 = { key1: 'val1', key2: 1, nest_key: { key3: true, key2: 1 }, nest_key2: { key_bool: false } }
+
 func 1, '123'
 func2 (func 1, '123')
 func2 (func 1), '123'
