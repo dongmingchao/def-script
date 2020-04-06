@@ -7,7 +7,7 @@ const baseRegexs = {
 	arrow: / =>/,
 	indentation: /\t/,
 	operator: {
-		assignment: / = /,
+		assignment: / = ?/,
 	},
 	value_type: {
 		number: /\d+/,
@@ -37,7 +37,7 @@ export { baseRegexs };
 
 export function useMetaRegex(regexp: RegExp, kind: string, index = 0, cb?: (this: ComposeContext<Core>, c: Core) => void) {
   return function (this: ComposeContext<Core>, c: Core) {
-		console.log(c.source, regexp);
+		// console.log(c.source, regexp);
     const match = regexp.exec(c.source)
     if (match === null) return c;
     else {
@@ -81,6 +81,6 @@ export function feedback(source: string, starter: (c: Core) => Core, errMsg: str
 	const { ast, source: rest } = starter({ source, ast: []});
 	const pos = source.length - rest.length + 1;
 	const mark = '^'.padStart(pos);
-  if (rest.length) throw new SyntaxError(`${errMsg} error: ${rest}\n${source}\n${mark}`);
+  if (rest.length) throw new SyntaxError(`${errMsg} error: '${rest}'\n${source}\n${mark}`);
   return ast;
 }

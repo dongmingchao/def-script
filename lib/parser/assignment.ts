@@ -52,7 +52,7 @@ function parseAssignment(source: string) {
   );
   const starter = compose(
     parseValue,
-		useMetaRegex(/^ = /, 'operator'),
+		useMetaRegex(concatRegex(['^', baseRegexs.operator.assignment]), 'operator'),
 		useMetaRegex(/^[A-z]\w*/, 'word'),
   );
   return feedback(source, starter, 'parse assignment');
