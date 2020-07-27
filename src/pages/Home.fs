@@ -4,8 +4,11 @@ open Fable.React
 open Fable.React.Props
 open Browser.Dom
 open Browser.Types
+open Fable.Core.JsInterop
 
-let block = div [ Style [ Display DisplayOptions.Flex ] ]
+importSideEffects "./Home.css"
+
+let block = div [ Style [ Display DisplayOptions.Flex; ] ]
 
 type EditorProps =
     { style: list<CSSProp> option
@@ -31,78 +34,88 @@ type State = { Count: int }
 
 type TypeElement =
   abstract render: _ -> ReactElement
+
+//let spanArea = FunctionComponent.Of(fun () ->
+//  span [ ContentEditable true; Style [BackgroundColor "red"] ] []
+//)
   
-type editor(?key, ?editable, ?style, ?ref, ?onInput, ?value) =
+type editor(?key, ?editable, ?style, ?ref, ?onInput, ?children, ?className) =
   let editable = defaultArg editable false
-  let style = defaultArg style []
+  let style: CSSProp list = defaultArg style []
   let key = defaultArg key ""
-  let handleFocus (e: Browser.Types.FocusEvent) = console.log (e, window.getSelection())
+  let className = defaultArg className ""
+  let children: ReactElement[] = defaultArg children [||]
+  let handleFocus (e: Browser.Types.FocusEvent) =
+    console.log (e, window.getSelection())
   let attr: IHTMLProp list =
         [
           Key key
           ContentEditable editable
           OnFocus handleFocus
-          Style (List.concat [ style; [Width "50%"; MinHeight "200px"] ]) ]
+          Class ("editor " + className)
+          Style style ]
   member this.render =
-    let value = defaultArg value (Hooks.useState "")
     let ref: IRefHook<Element option> = defaultArg ref Hooks.useRef None
-    let mutable offset = window.getSelection().anchorOffset
+//    let mutable offset = window.getSelection().anchorOffset
+//    let mutable focusNode = window.getSelection().focusNode
     let handleInput (e: Browser.Types.Event) =
-      if ref.current.IsNone then ()
-      else
+      if ref.current.IsSome then
         let now = ref.current.Value :?> HTMLDivElement
         if onInput.IsSome then Option.get onInput now.innerHTML
-        offset <- window.getSelection().anchorOffset
-        console.log now.innerHTML
+//        let sel = window.getSelection()
+//        offset <- sel.anchorOffset
+//        focusNode <- sel.focusNode
+//        let att = focusNode.attributes.getNamedItem("contenteditable")
+//        att.value <- "true"
+//        focusNode.attributes.setNamedItem(att) |> ignore
 
-    Hooks.useEffect((fun() ->
-      if editable then
-        let sel = window.getSelection()
-        if (not(isNull sel.anchorNode)) then 
-          sel.collapse(sel.focusNode.firstChild, offset)
-      ), [|value.current|])
+//    Hooks.useEffect((fun() ->
+//      if editable then
+//        if (not(isNull focusNode)) then
+//          console.log("collapse", focusNode, offset)
+//          window.getSelection().collapse(focusNode, offset)
+//          window.setInterval((fun () -> console.log(focusNode, offset)), 1000) |> ignore
+//      ), [|value.current|])
 
     let attr = attr @ [
       RefHook ref
       OnInput handleInput
-      DangerouslySetInnerHTML { __html = value.current }
     ]
-    div ( Seq.ofList attr ) []
+    div ( Seq.ofList attr ) children
 
-type areaProps = {
-  value: IStateHook<string>
-  onInput: option<string -> unit>
-}
+//type editProps = {
+//  value: IStateHook<string>
+//  onInput: option<string -> unit>
+//}
 
-let nothingFunc _ = ()
-
-let editArea = FunctionComponent.Of(fun (props: areaProps) ->
-  let onInput = defaultArg props.onInput nothingFunc
+let outerArea = FunctionComponent.Of(fun (props: {| children: ReactElement[]; onInput: option<string -> unit> |}) ->
   editor(
     key = "editArea",
-    value = props.value,
-    onInput = onInput,
-    editable=true,
+    onInput = Option.get props.onInput,
+    children = props.children,
+    editable= false,
+    className =  "editor body",
     style=[BackgroundColor "#acd"]).render
 )
 
-let showArea = FunctionComponent.Of(fun (props: areaProps) ->
+let spanArea = FunctionComponent.Of(fun (props: {| value: string |}) ->
   editor(
-    key = "showArea",
-    value = props.value,
-    editable=false,
-    style=[BackgroundColor "#acc"]).render
-)
+    key = "spanArea",
+    editable = true,
+    children = [| str props.value |]
+  ).render)
+
+let target = Tests.target.Split('\n') 
+          |> Array.map(fun s -> spanArea {| value = s |})
 
 let ViewComponent = FunctionComponent.Of(fun () -> 
-  let state = Hooks.useState("123")
-  let handleInput (s:string) =
-    console.log ("out input", s)
-    state.update s
+//  let state = Hooks.useState(target)
+//  let handleInput (s:string) =
+//    state.update s
    
   block [
-    editArea { value = state; onInput = Some(handleInput) }
-    showArea { value = state; onInput = None }
+    outerArea {| children = target; onInput = None |}
+    outerArea {| children = target; onInput = None |}
   ]
 )
 

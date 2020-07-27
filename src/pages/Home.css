@@ -1,0 +1,6 @@
+.editor.body {
+  white-space: pre;
+  overflow: scroll;
+  width: 50%;
+  min-height: 200px;
+}
