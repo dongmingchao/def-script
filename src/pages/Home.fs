@@ -8,6 +8,8 @@ open Fable.Core.JsInterop
 
 importSideEffects "./Home.css"
 
+let JSON =  Fable.Core.JS.JSON
+
 let block = div [ Style [ Display DisplayOptions.Flex; ] ]
 
 type EditorProps =
@@ -38,30 +40,99 @@ type TypeElement =
 //let spanArea = FunctionComponent.Of(fun () ->
 //  span [ ContentEditable true; Style [BackgroundColor "red"] ] []
 //)
-  
-type editor(?key, ?editable, ?style, ?ref, ?onInput, ?children, ?className) =
+
+type MayDangerChildren = R of ReactElement[] | S of string
+ 
+type editor(?key, ?editable, ?style, ?ref, ?onInput, ?onFocus, ?children, ?className) =
   let editable = defaultArg editable false
   let style: CSSProp list = defaultArg style []
   let key = defaultArg key ""
   let className = defaultArg className ""
-  let children: ReactElement[] = defaultArg children [||]
-  let handleFocus (e: Browser.Types.FocusEvent) =
-    console.log (e, window.getSelection())
+  let children: MayDangerChildren = defaultArg children (R [||])
   let attr: IHTMLProp list =
         [
           Key key
           ContentEditable editable
-          OnFocus handleFocus
           Class ("editor " + className)
           Style style ]
   member this.render =
     let ref: IRefHook<Element option> = defaultArg ref Hooks.useRef None
-//    let mutable offset = window.getSelection().anchorOffset
-//    let mutable focusNode = window.getSelection().focusNode
+    let loaded = Hooks.useRef false
     let handleInput (e: Browser.Types.Event) =
-      if ref.current.IsSome then
-        let now = ref.current.Value :?> HTMLDivElement
-        if onInput.IsSome then Option.get onInput now.innerHTML
+      let now = e.target :?> HTMLDivElement
+      if onInput.IsSome then Option.get onInput now.innerHTML
+    let handleFocus e =
+      if onFocus.IsSome then Option.get onFocus e
+    
+    Hooks.useEffect((fun () ->
+      loaded.current <- true
+    ), [||])
+
+    let attr = attr @ [
+      RefHook ref
+      OnInput handleInput
+    ]
+    match children with
+    | R c -> div ( Seq.ofList attr ) c
+    | S s -> div ( Seq.ofList (attr @ [ OnFocus handleFocus; DangerouslySetInnerHTML { __html = s }  ])) []
+
+//type editProps = {
+//  value: IStateHook<string>
+//  onInput: option<string -> unit>
+//}
+
+let outerArea = FunctionComponent.Of(fun (props: {| children: ReactElement[]; onInput: option<string -> unit> |}) ->
+  editor(
+    key = "editArea",
+    onInput = Option.get props.onInput,
+    children = R props.children,
+    className =  "editor body",
+    style=[BackgroundColor "#acd"]).render
+)
+
+let spanArea = FunctionComponent.Of(fun (props: {| value: string; onFocus: option<FocusEvent -> unit> |}) ->
+  editor(
+    key = "spanArea",
+    editable = true,
+    children = S props.value,
+    ?onFocus = props.onFocus
+  ).render)
+
+let target onFocus = Tests.target.Split('\n') 
+                                                        |> Array.mapi(fun line s ->
+                                                           let handleFocus e =
+                                                             Option.get onFocus e line
+                                                           spanArea {| value = s; onFocus = Some(handleFocus) |})
+
+let ViewComponent = FunctionComponent.Of(fun () -> 
+  let line = Hooks.useState(0)
+  let handleInput (s:string) =
+    console.log(s)
+  let handleFocus n x y =
+    console.log(n, x, y)
+    
+  let focusNode = Hooks.useState<HTMLDivElement>(null)
+  let handleFocus (e: Browser.Types.FocusEvent) (l: int) =
+    focusNode.update (e.target :?> HTMLDivElement)
+    line.update l
+    
+  Hooks.useEffect((fun () ->
+    let select = window.getSelection()
+    console.log(select.anchorNode, select.anchorOffset, line.current)
+  ), [|focusNode|])
+   
+  block [
+    outerArea {| children = target(Some handleFocus); onInput = Some(handleInput) |}
+    outerArea {| children = target(None); onInput = None |}
+  ]
+)
+
+let view = ViewComponent()
+
+
+//      if ref.current.IsSome then
+//        let now = ref.current.Value :?> HTMLDivElement
+//        if onInput.IsSome then Option.get onInput now.innerHTML
 //        let sel = window.getSelection()
 //        offset <- sel.anchorOffset
 //        focusNode <- sel.focusNode
@@ -76,47 +147,3 @@ type editor(?key, ?editable, ?style, ?ref, ?onInput, ?children, ?className) =
 //          window.getSelection().collapse(focusNode, offset)
 //          window.setInterval((fun () -> console.log(focusNode, offset)), 1000) |> ignore
 //      ), [|value.current|])
-
-    let attr = attr @ [
-      RefHook ref
-      OnInput handleInput
-    ]
-    div ( Seq.ofList attr ) children
-
-//type editProps = {
-//  value: IStateHook<string>
-//  onInput: option<string -> unit>
-//}
-
-let outerArea = FunctionComponent.Of(fun (props: {| children: ReactElement[]; onInput: option<string -> unit> |}) ->
-  editor(
-    key = "editArea",
-    onInput = Option.get props.onInput,
-    children = props.children,
-    editable= false,
-    className =  "editor body",
-    style=[BackgroundColor "#acd"]).render
-)
-
-let spanArea = FunctionComponent.Of(fun (props: {| value: string |}) ->
-  editor(
-    key = "spanArea",
-    editable = true,
-    children = [| str props.value |]
-  ).render)
-
-let target = Tests.target.Split('\n') 
-          |> Array.map(fun s -> spanArea {| value = s |})
-
-let ViewComponent = FunctionComponent.Of(fun () -> 
-//  let state = Hooks.useState(target)
-//  let handleInput (s:string) =
-//    state.update s
-   
-  block [
-    outerArea {| children = target; onInput = None |}
-    outerArea {| children = target; onInput = None |}
-  ]
-)
-
-let view = ViewComponent()
