@@ -90,40 +90,50 @@ let outerArea = FunctionComponent.Of(fun (props: {| children: ReactElement[]; on
     style=[BackgroundColor "#acd"]).render
 )
 
-let spanArea = FunctionComponent.Of(fun (props: {| value: string; onFocus: option<FocusEvent -> unit> |}) ->
+let spanArea = FunctionComponent.Of(fun (props: {|
+                                                  value: string
+                                                  editable: bool option
+                                                  onFocus: option<FocusEvent -> unit>
+                                                  |}) ->
   editor(
     key = "spanArea",
-    editable = true,
+    ?editable = props.editable,
     children = S props.value,
     ?onFocus = props.onFocus
   ).render)
 
-let target onFocus = Tests.target.Split('\n') 
-                                                        |> Array.mapi(fun line s ->
-                                                           let handleFocus e =
-                                                             Option.get onFocus e line
-                                                           spanArea {| value = s; onFocus = Some(handleFocus) |})
+let testsLines = Tests.target.Split('\n') |> Array.toList
 
 let ViewComponent = FunctionComponent.Of(fun () -> 
-  let line = Hooks.useState(0)
+  let lineId = Hooks.useState(0)
+  let lines = Hooks.useState(testsLines)
   let handleInput (s:string) =
-    console.log(s)
-  let handleFocus n x y =
-    console.log(n, x, y)
+    let replace id value =
+      if id = lineId.current then s
+      else value
+    List.mapi replace lines.current |> lines.update
     
   let focusNode = Hooks.useState<HTMLDivElement>(null)
-  let handleFocus (e: Browser.Types.FocusEvent) (l: int) =
+  let handleFocus (l: int) (e: Browser.Types.FocusEvent) =
     focusNode.update (e.target :?> HTMLDivElement)
-    line.update l
+    lineId.update l
     
   Hooks.useEffect((fun () ->
     let select = window.getSelection()
-    console.log(select.anchorNode, select.anchorOffset, line.current)
+    console.log(select.anchorNode, select.anchorOffset, lineId.current)
   ), [|focusNode|])
+  
+  let rightContent = lines.current
+                        |> List.map(fun s ->
+                         spanArea {| value = s; onFocus = None; editable = Some false |})
+                        |> Array.ofList
+  let leftContent = testsLines |> List.mapi(fun line s ->
+    spanArea {| value = s; onFocus = Some(handleFocus line); editable = Some true |})
+                        |> Array.ofList
    
   block [
-    outerArea {| children = target(Some handleFocus); onInput = Some(handleInput) |}
-    outerArea {| children = target(None); onInput = None |}
+    outerArea {| children = leftContent; onInput = Some(handleInput) |}
+    outerArea {| children = rightContent; onInput = None |}
   ]
 )
 

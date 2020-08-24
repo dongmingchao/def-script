@@ -3,6 +3,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lib\core\BuildInRegex.fs" />
     <Compile Include="tests\target.fs" />
     <Compile Include="pages\Home.fs" />
     <Compile Include="App.fs" />
