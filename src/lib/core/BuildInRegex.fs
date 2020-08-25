@@ -1,36 +1,38 @@
 ﻿module lib.core.BuildInRegex
 
-[<Literal>]
-let Word = "[A-z]\w*"
-[<Literal>]
-let LeftParentheses = "\("
-let RightParentheses = "\)"
-let Arrow = " =>"
-let Indentation = "\t"
-let Assignment = " = ?"
+//[<Literal>]
+//let Word = "[A-z]\w*"
+//[<Literal>]
+//let LeftParentheses = "\("
+//let RightParentheses = "\)"
+//let Arrow = " =>"
+//let Indentation = "\t"
+//let Assignment = " = ?"
+//type Operator = | Assignment
+//
+//[<Literal>]
+//let Number = "\d+"
+//[<Literal>]
+//let String = "'(.+)'"
+//[<Literal>]
+//let Boolean = "(true|false)"
+
+let BuildInRegexs =
+    {| Word = "[A-z]\w*"
+       LeftParentheses = "\("
+       RightParentheses = "\)"
+       Arrow = " =>"
+       Operator = {| Assignment = " = ?" |}
+       ValueType = {| Number = "\d+"
+                      String = "'(.+)'"
+                      Boolean = "(true|false)" |} |}
+
 type Operator = | Assignment
-
-[<Literal>]
-let Number = "\d+"
-[<Literal>]
-let String = "'(.+)'"
-[<Literal>]
-let Boolean = "(true|false)"
-
-type Customer = 
-    { First: "sadsa"
-      Last: string;
-      SSN: uint32
-      AccountNumber: uint32; }
-
 type ValueType = | Number | String | Boolean
-type BuildInRegexs =
-    | Word | LeftParentheses | RightParentheses| Arrow | Indentation
-    | Operator | ValueType
-
-let getBuildInRegex = function
-    | ValueType.String -> "123"
-
+type ASTKind =
+    | Word | LeftParentheses | RightParentheses | Arrow | Indentation
+    | S | ValueType
+    
 //let baseRegexs = {
 //	word: "[A-z]\w*",
 //	left_parentheses: "\(",
