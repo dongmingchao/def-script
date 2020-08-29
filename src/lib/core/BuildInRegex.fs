@@ -21,18 +21,37 @@ let BuildInRegexs =
     {| Word = "[A-z]\w*"
        LeftParentheses = "\("
        RightParentheses = "\)"
-       Arrow = " =>"
-       Operator = {| Assignment = " = ?" |}
-       ValueType = {| Number = "\d+"
-                      String = "'(.+)'"
-                      Boolean = "(true|false)" |} |}
+       KeyWord = {| If = "if"; For = "for" |}
+       Operator =
+           {| Assignment = " = ?"
+              Arrow = " =>"
+              Comma = ", " |}
+       ValueType =
+           {| Number = "\d+"
+              String = "'(.+)'"
+              Boolean = "(true|false)" |} |}
 
-type Operator = | Assignment
-type ValueType = | Number | String | Boolean
-type ASTKind =
-    | Word | LeftParentheses | RightParentheses | Arrow | Indentation
-    | S | ValueType
-    
+type Operator =
+    | Assignment
+    | Arrow | Comma
+
+type KeyWord =
+    | If
+    | For
+
+and ValueType =
+    | Number
+    | String
+    | Boolean
+
+and ASTKind =
+    | Word
+    | LeftParentheses
+    | RightParentheses
+    | Indentation
+    | Operator of Operator
+    | KeyWord of KeyWord
+    | ValueType of ValueType
 //let baseRegexs = {
 //	word: "[A-z]\w*",
 //	left_parentheses: "\(",
