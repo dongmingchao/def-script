@@ -31,6 +31,51 @@ let getAstKind (context: AST list) index =
 let (?=) a b =
   a = Some b
 
+
+type RepeatType = Black | White
+
+type RecognizeRepeatNode = {
+  Type: RepeatType
+  Kind: ASTKind seq
+}
+
+type RecognizeTimesNode = {
+  Kind: ASTKind
+  Times: int
+}
+
+type RecognizeNode = TimesNode of RecognizeTimesNode | RepeatNode of RecognizeRepeatNode
+
+let recognizeOne (recoList: RecognizeNode list) (context: AST list) index =
+  let find = getAstKind context
+  let reco = recoList.[index]
+  console.log("reco", reco, index)
+
+  match reco with
+  | TimesNode m ->
+    let findNotMatch r = not (find (index+r) ?= m.Kind)
+    if m.Times > 0 then
+      let notMatch = List.tryFindIndex findNotMatch [0]
+      if notMatch.IsSome then console.log("sdadsadas", notMatch.Value)
+      notMatch.IsSome
+    else false
+  | RepeatNode m -> failwith "Not Implemented"
+
+let recognize (recoList: RecognizeNode list) (context: AST list) =
+  let notMatch = List.tryFindIndex (recognizeOne recoList context) [0 .. recoList.Length - 1]
+  console.log("not match", notMatch)
+
+let testReco: RecognizeNode list = [
+  TimesNode {
+    Kind = Operator Arrow
+    Times = 1 }
+  TimesNode {
+    Kind = RightParentheses
+    Times = 1 }
+  TimesNode {
+    Kind = Word
+    Times = 1 }]
+
 let guessDeclareFunction (context: AST list) =
   let find = getAstKind context
   find 0 ?= Operator Arrow &&
@@ -45,13 +90,14 @@ let guessDeclareFunction (context: AST list) =
 let rec eval (context: AST list) (target: string) = 
   let evalx kind (progma: Match) =
     let catched = AST(kind, string progma.Value)
-    console.log(progma.Value, target, Array.ofList context)
+    console.log("catched", progma.Value, target, Array.ofList context)
     console.log("is declare function ?", guessDeclareFunction context)
+    recognize testReco context
     [
       if progma.Value.Length < target.Length then
         let next = target.[progma.Value.Length + progma.Index..]
         yield! eval (catched :: context) next
-      
+      catched
     ]
   match target with
   | Regex ["^"; BuildInRegexs.Word] m ->
@@ -98,8 +144,9 @@ let rec eval (context: AST list) (target: string) =
           yield! evalx template.Kind m
       ]
 
-for ast in eval [] target do
-  console.log("eval ast", ast)
+for line in testsLines.[16..20] do
+  for ast in eval [] line do
+    console.log("eval ast", ast)
 
 type ASTCollector = {
   Source: string

@@ -21,19 +21,23 @@ let BuildInRegexs =
     {| Word = "[A-z]\w*"
        LeftParentheses = "\("
        RightParentheses = "\)"
-       KeyWord = {| If = "if"; For = "for" |}
-       Operator =
-           {| Assignment = " = ?"
-              Arrow = " =>"
-              Comma = ", " |}
-       ValueType =
-           {| Number = "\d+"
-              String = "'(.+)'"
-              Boolean = "(true|false)" |} |}
+       KeyWord = {| If = "if"
+                    For = "for" |}
+       Operator = {| Assignment = " = ?"
+                     Arrow = " =>"
+                     Comma = ", " |}
+       ValueType = {| Number = "\d+"
+                      String = "'(.+)'"
+                      Boolean = "(true|false)" |} |}
 
 type Operator =
     | Assignment
-    | Arrow | Comma | NextLine
+    | Arrow
+    | Comma
+
+type Indentation =
+    | NextLine
+    | Tab
 
 type KeyWord =
     | If
@@ -48,20 +52,21 @@ and ASTKind =
     | Word
     | LeftParentheses
     | RightParentheses
-    | Indentation
+    | Indentation of Indentation
     | Operator of Operator
     | KeyWord of KeyWord
     | ValueType of ValueType
 
 
-type ASTConfig = {
-    Matcher: string
-    Kind: ASTKind
-    Name: string
-}
+type ASTConfig =
+    { Matcher: string
+      Kind: ASTKind
+      Name: string }
 
-let rest = [{
-   Matcher = "\n|\r"
-   Kind = Operator NextLine
-   Name = "next line"
-}]
+let rest =
+    [ { Matcher = "\n|\r"
+        Kind = Indentation NextLine
+        Name = "next line" }
+      { Matcher = "\t"
+        Kind = Indentation Tab
+        Name = "tab" } ]
