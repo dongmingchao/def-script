@@ -22,13 +22,36 @@ type AST(?kind: ASTKind, ?value: string) =
   member this.Kind = kind
   member this.Value = value
 
-let rec eval (target: string) = 
+let getAstKind (context: AST list) index =
+  let ret = (List.tryItem index context)
+  if ret.IsSome then
+    ret.Value.Kind
+  else None
+
+let (?=) a b =
+  a = Some b
+
+let guessDeclareFunction (context: AST list) =
+  let find = getAstKind context
+  find 0 ?= Operator Arrow &&
+  find 1 ?= RightParentheses &&
+  find 2 ?= Word &&
+  let mutable i = 3
+  while find i ?= Word || find i ?= Operator Comma do
+    i <- i + 1  
+  find i ?= LeftParentheses &&
+  find (i+1) ?= Word
+
+let rec eval (context: AST list) (target: string) = 
   let evalx kind (progma: Match) =
+    let catched = AST(kind, string progma.Value)
+    console.log(progma.Value, target, Array.ofList context)
+    console.log("is declare function ?", guessDeclareFunction context)
     [
-      if progma.Value.Length + progma.Index < target.Length then
+      if progma.Value.Length < target.Length then
         let next = target.[progma.Value.Length + progma.Index..]
-        yield! eval next
-      AST(kind, string progma.Value)
+        yield! eval (catched :: context) next
+      
     ]
   match target with
   | Regex ["^"; BuildInRegexs.Word] m ->
@@ -49,12 +72,12 @@ let rec eval (target: string) =
   | Regex ["^"; BuildInRegexs.Operator.Comma] m ->
       console.log("is Operator Comma", m)
       evalx (Operator Comma) m
-  | Regex ["^"; BuildInRegexs.Operator.Assignment] m ->
-      console.log("is Operator Assignment", m)
-      evalx (Operator Assignment) m
   | Regex ["^"; BuildInRegexs.Operator.Arrow] m ->
       console.log("is Operator Arrow", m)
       evalx (Operator Arrow) m
+  | Regex ["^"; BuildInRegexs.Operator.Assignment] m ->
+      console.log("is Operator Assignment", m)
+      evalx (Operator Assignment) m
   | Regex ["^"; BuildInRegexs.ValueType.String] m ->
       console.log("is string", m)
       evalx (ValueType String) m
@@ -65,10 +88,17 @@ let rec eval (target: string) =
       console.log("is Boolean", m)
       evalx (ValueType Boolean) m
   | _ ->
-      console.log (target, "Not Match")
-      []
+      let restTarget = [| for ch in target -> int ch |]
+      console.log (target, "Not Match", restTarget)
+      [
+      for template in rest do
+        let m = Regex.Match(target, template.Matcher)
+        console.log("is rest", m, "|"+target+"|", template)
+        if m.Success && m.Index = 0 then
+          yield! evalx template.Kind m
+      ]
 
-for ast in eval target do
+for ast in eval [] target do
   console.log("eval ast", ast)
 
 type ASTCollector = {

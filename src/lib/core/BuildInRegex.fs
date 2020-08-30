@@ -33,7 +33,7 @@ let BuildInRegexs =
 
 type Operator =
     | Assignment
-    | Arrow | Comma
+    | Arrow | Comma | NextLine
 
 type KeyWord =
     | If
@@ -52,19 +52,16 @@ and ASTKind =
     | Operator of Operator
     | KeyWord of KeyWord
     | ValueType of ValueType
-//let baseRegexs = {
-//	word: "[A-z]\w*",
-//	left_parentheses: "\(",
-//	right_parentheses: "\)",
-//	arrow: " =>",
-//	indentation: "\t",
-//	operator: {
-//		assignment: " = ?",
-//	},
-//	value_type: {
-//		number: "\d+",
-//		string: "'(.+)'",
-//		boolean: "(true|false)",
-//		object: "a",
-//	}
-//}
+
+
+type ASTConfig = {
+    Matcher: string
+    Kind: ASTKind
+    Name: string
+}
+
+let rest = [{
+   Matcher = "\n|\r"
+   Kind = Operator NextLine
+   Name = "next line"
+}]
