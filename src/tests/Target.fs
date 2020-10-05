@@ -1,7 +1,7 @@
 module Tests
-let target = """
-var_str = 'str'
+let target = """var_str = 'str'
 var_number = 12
+var_boolean = true
 
 var_obj1 = { key1: 'val1' }
 var_obj2 = { key1: 'val1', key2: 1 }
@@ -23,7 +23,6 @@ func(args1, args2) =>
 
 var_assign_func = func 1
 
-var_boolean = true
 func2({ arg_key }) =>
   ret arg_key
   local_rest_var = 1

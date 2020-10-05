@@ -64,9 +64,25 @@ type ASTConfig =
       Name: string }
 
 let rest =
-    [ { Matcher = "\n|\r"
-        Kind = Indentation NextLine
-        Name = "next line" }
+    [
+//      { Matcher = "[\r\n]"
+//        Kind = Indentation NextLine
+//        Name = "next line" }
+      { Matcher = BuildInRegexs.ValueType.Boolean
+        Kind = ValueType Boolean
+        Name = "boolean" }
+      { Matcher = BuildInRegexs.ValueType.Number
+        Kind = ValueType Number
+        Name = "number" }
+      { Matcher = BuildInRegexs.ValueType.String
+        Kind = ValueType String
+        Name = "string" }
+      { Matcher = BuildInRegexs.Word
+        Kind = Word
+        Name = "word" }
+      { Matcher = BuildInRegexs.Operator.Assignment
+        Kind = Operator Assignment
+        Name = "word" }
       { Matcher = "\t"
         Kind = Indentation Tab
         Name = "tab" } ]
