@@ -48,9 +48,10 @@ and RecognizeNode =
 (**
 识别出一个模式节点是否匹配一串AST，返回匹配到的位置索引
 *)
+
 let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
   let find = getAstKind context
-//  console.log ("reco one", recoNode, List.toArray context)
+  //  console.log ("reco one", recoNode, List.toArray context)
 
   match recoNode with
   | TimesNode m ->
@@ -62,49 +63,58 @@ let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
         let notMatch =
           List.tryFindIndex findNotMatch [ 0 .. m.Times - 1 ]
 
-        if notMatch.IsNone then m.Times else 0
+        if notMatch.IsNone then Some m.Times else None
       else
-        0
+        None
   | RangeNode m ->
       let findNotMatch r = not (find r ?= m.Kind)
 
       let notMatchMin =
         List.tryFindIndex findNotMatch [ 0 .. m.Min - 1 ]
 
+      //      console.log("range node min", m, notMatchMin)
+
       if notMatchMin.IsSome then
-        0
+        None
       else
         let notMatchMax =
           List.tryFindIndex findNotMatch [ m.Min .. m.Max - 1 ]
+        //        console.log("range node max", m, notMatchMax)
 
-        if notMatchMax.IsSome then notMatchMax.Value else m.Max
+        if notMatchMax.IsSome then notMatchMax else Some m.Max
   | RepeatNode m ->
-      let mutable step = 0
-      let len = m.Kind.Length - 1
+      let mutable ret = recognize m.Kind context
+      let mutable step = ret
 
-      let mutable ret =
-        recognize m.Kind context.[step..step + len]
+      //      let mutable ret =
+//        recognize m.Kind context.[step..step + len]
 
-      while ret.IsNone do
-        step <- step + m.Kind.Length
-        ret <- recognize m.Kind context.[step..step + len]
-      ret.Value + step
+      //      while ret.IsNone do
+//      step <- step + m.Kind.Length
+      while ret < context.Length && step <> 0 do
+        step <- recognize m.Kind context.[ret..]
+        ret <- ret + step
+//        console.log("repeat", ret, step)
+      Some ret
 
-and recognize (recoList: RecognizeNode list) (context: AST list): int option =
+and recognize (recoList: RecognizeNode list) (context: AST list) =
   let mutable cursor = 0
 
   let matchEach i =
+//    console.log("cursor", cursor)
     let ret =
       recognizeOne recoList.[i] context.[cursor..]
 
-    cursor <- ret + cursor
-    ret = 0
+    if ret.IsSome then
+      //      console.log("ret.Value", ret.Value)
+      cursor <- ret.Value + cursor
+    ret.IsNone
 
   let notMatch =
     List.tryFindIndex matchEach [ 0 .. recoList.Length - 1 ]
 
-  console.log ("not match", List.toArray context, notMatch.Value, cursor)
-  notMatch
+  //  console.log ("not match", List.toArray context, List.toArray recoList, notMatch, cursor)
+  cursor
 
 let isFunctionDeclare: RecognizeNode list =
   [ TimesNode { Kind = Operator Arrow; Times = 1 }
@@ -125,30 +135,62 @@ let isAssign: RecognizeNode list =
     TimesNode { Kind = Word; Times = 1 } ]
 
 let isAssignString: RecognizeNode list =
-  TimesNode { Kind = ValueType String; Times = 1 } :: isAssign
+  TimesNode { Kind = ValueType String; Times = 1 }
+  :: isAssign
 
 let isAssignNumber: RecognizeNode list =
-  TimesNode { Kind = ValueType Number; Times = 1 } :: isAssign
+  TimesNode { Kind = ValueType Number; Times = 1 }
+  :: isAssign
 
 let isAssignBool: RecognizeNode list =
-  TimesNode { Kind = ValueType Boolean; Times = 1 } :: isAssign
-  
-  
-type Behavior = {
-  Kind: RecognizeNode list
-  Name: string
-}
+  TimesNode { Kind = ValueType Boolean; Times = 1 }
+  :: isAssign
 
-let behaviorSet = [
-  { Kind = isAssignString
-    Name = "assign string" }
-  { Kind = isAssignNumber
-    Name = "assign number" }
-  { Kind = isAssignBool
-    Name = "assign bool" }
-  { Kind = isFunctionDeclare
-    Name = "function declare" }
-]
+let isObject: RecognizeNode list =
+  [ TimesNode
+      { Kind = RightBigParentheses
+        Times = 1 }
+    RepeatNode
+      { Type = White
+        Kind =
+          [ RangeNode
+              { Kind = ValueType String
+                Max = 1
+                Min = 0 }
+            RangeNode
+              { Kind = ValueType Number
+                Max = 1
+                Min = 0 }
+            RangeNode
+              { Kind = ValueType Boolean
+                Max = 1
+                Min = 0 }
+            RangeNode
+              { Kind = ValueType Object
+                Max = 1
+                Min = 0 }
+            TimesNode { Kind = Colon; Times = 1 }
+            TimesNode { Kind = Word; Times = 1 }
+            TimesNode { Kind = Operator Comma; Times = 1 } ] }
+    TimesNode { Kind = LeftBigParentheses; Times = 1 } ]
+
+let isAssignObject = isObject @ isAssign
+
+type Behavior =
+  { Kind: RecognizeNode list
+    Name: string }
+
+let behaviorSet =
+  [ { Kind = isAssignString
+      Name = "assign string" }
+    { Kind = isAssignNumber
+      Name = "assign number" }
+    { Kind = isAssignBool
+      Name = "assign bool" }
+    { Kind = isAssignObject
+      Name = "assign object" }
+    { Kind = isFunctionDeclare
+      Name = "function declare" } ]
 
 //let guessDeclareFunction (context: AST list) =
 //    let find = getAstKind context
@@ -164,7 +206,7 @@ let behaviorSet = [
 let rec eval (context: AST list) (target: string) =
   let evalx kind (progma: Match) =
     let catched = AST(kind, string progma.Value)
-    console.log ("catched", progma.Value, target, Array.ofList context, progma.Value.Length < target.Length)
+    //    console.log ("catched", progma.Value, target, Array.ofList context, progma.Value.Length < target.Length)
     //        console.log ("is declare function ?", guessDeclareFunction context)
     [ if progma.Value.Length < target.Length then
         let next =
@@ -174,7 +216,7 @@ let rec eval (context: AST list) (target: string) =
       catched ]
 
   match target with
-//  | Regex [ "^"; BuildInRegexs.ValueType.String ] m ->
+  //  | Regex [ "^"; BuildInRegexs.ValueType.String ] m ->
 //      evalx (ValueType String) m
 //  | Regex [ "^"; BuildInRegexs.ValueType.Number ] m ->
 //      evalx (ValueType Number) m
@@ -200,25 +242,30 @@ let rec eval (context: AST list) (target: string) =
   | Regex [ "^"; BuildInRegexs.Operator.Arrow ] m ->
       //        console.log ("is Operator Arrow", m)
       evalx (Operator Arrow) m
-//  | Regex [ "^"; BuildInRegexs.Operator.Assignment ] m ->
+  //  | Regex [ "^"; BuildInRegexs.Operator.Assignment ] m ->
 //      evalx (Operator Assignment) m
   | _ ->
       let restTarget = [| for ch in target -> int ch |]
-      console.log (target, "into rest recognize", restTarget)
+      //      console.log (target, "into rest recognize", restTarget)
       let mutable matched = false
       [ for template in rest do
           if not matched then
             let m = Regex.Match(target, template.Matcher)
-            console.log ("is rest", m, "|" + target + "|", template)
+            //            console.log ("is rest", m, "|" + target + "|", template)
             if m.Success && m.Index = 0 then
               matched <- true
               yield! evalx template.Kind m ]
 
 let guessBehavior line =
   let guess behavior =
-    console.log("guessing", line, "is", behavior.Name)
-    let fin = recognize behavior.Kind (eval [] line)
-    fin.IsNone
+    //    console.log("guessing", line, "is", behavior.Name)
+    let ctx = eval [] line
+    if ctx.Length = 0 then
+      false
+    else
+      let fin = recognize behavior.Kind ctx
+      fin = ctx.Length
+
   List.filter guess behaviorSet
 
 //let context2 = eval [] testsLines.[1]
@@ -236,7 +283,8 @@ let guessBehavior line =
 //let judge = recognize isFunctionDeclare context
 //console.log ("match isFunctionDeclare", judge)
 
-console.log ("match isAssignBool", guessBehavior testsLines.[2] |> List.toArray)
+for (i, line) in seq { for i in 0 .. 7 -> (i, testsLines.[i]) } do
+  console.log (i, line, eval [] line |> List.toArray, guessBehavior line |> List.toArray)
 
 type ASTCollector = { Source: string; Ast: AST [] }
 
