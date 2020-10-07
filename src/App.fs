@@ -2,10 +2,10 @@ module App
 
 open Fable.React
 open Browser.Dom
+open lib.parser.Behavior
 open pages.Home
 open System.Text.RegularExpressions
 open lib.core.BuildInRegex
-open lib.parser.Assignment
 
 ReactDom.render (div [] [ str "Editor"; view ], document.getElementById ("root"))
 
@@ -26,24 +26,6 @@ let getAstKind (context: AST list) index =
   if ret.IsSome then ret.Value.Kind else None
 
 let (?=) a b = a = Some b
-
-
-type RepeatType =
-  | Black
-  | White
-
-type RecognizeTimesNode = { Kind: ASTKind; Times: int }
-
-type RecognizeRangeNode = { Kind: ASTKind; Max: int; Min: int }
-
-type RecognizeRepeatNode =
-  { Type: RepeatType
-    Kind: RecognizeNode list }
-
-and RecognizeNode =
-  | TimesNode of RecognizeTimesNode
-  | RangeNode of RecognizeRangeNode
-  | RepeatNode of RecognizeRepeatNode
 
 (**
 识别出一个模式节点是否匹配一串AST，返回匹配到的位置索引
@@ -83,7 +65,8 @@ let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
 
         if notMatchMax.IsSome then notMatchMax else Some m.Max
   | RepeatNode m ->
-      let mutable ret = recognize m.Kind context
+      let kind = m.Kind()
+      let mutable ret = recognize kind context
       let mutable step = ret
 
       //      let mutable ret =
@@ -92,7 +75,7 @@ let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
       //      while ret.IsNone do
 //      step <- step + m.Kind.Length
       while ret < context.Length && step <> 0 do
-        step <- recognize m.Kind context.[ret..]
+        step <- recognize kind context.[ret..]
         ret <- ret + step
 //        console.log("repeat", ret, step)
       Some ret
@@ -116,81 +99,6 @@ and recognize (recoList: RecognizeNode list) (context: AST list) =
   //  console.log ("not match", List.toArray context, List.toArray recoList, notMatch, cursor)
   cursor
 
-let isFunctionDeclare: RecognizeNode list =
-  [ TimesNode { Kind = Operator Arrow; Times = 1 }
-    TimesNode { Kind = RightParentheses; Times = 1 }
-    RangeNode { Kind = Word; Max = 1; Min = 0 }
-    RepeatNode
-      { Type = White
-        Kind =
-          [ TimesNode { Kind = Operator Comma; Times = 1 }
-            TimesNode { Kind = Word; Times = 1 } ] }
-    TimesNode { Kind = LeftParentheses; Times = 1 }
-    TimesNode { Kind = Word; Times = 1 } ]
-
-let isAssign: RecognizeNode list =
-  [ TimesNode
-      { Kind = Operator Assignment
-        Times = 1 }
-    TimesNode { Kind = Word; Times = 1 } ]
-
-let isAssignString: RecognizeNode list =
-  TimesNode { Kind = ValueType String; Times = 1 }
-  :: isAssign
-
-let isAssignNumber: RecognizeNode list =
-  TimesNode { Kind = ValueType Number; Times = 1 }
-  :: isAssign
-
-let isAssignBool: RecognizeNode list =
-  TimesNode { Kind = ValueType Boolean; Times = 1 }
-  :: isAssign
-
-let isObject: RecognizeNode list =
-  [ TimesNode
-      { Kind = RightBigParentheses
-        Times = 1 }
-    RepeatNode
-      { Type = White
-        Kind =
-          [ RangeNode
-              { Kind = ValueType String
-                Max = 1
-                Min = 0 }
-            RangeNode
-              { Kind = ValueType Number
-                Max = 1
-                Min = 0 }
-            RangeNode
-              { Kind = ValueType Boolean
-                Max = 1
-                Min = 0 }
-            RangeNode
-              { Kind = ValueType Object
-                Max = 1
-                Min = 0 }
-            TimesNode { Kind = Colon; Times = 1 }
-            TimesNode { Kind = Word; Times = 1 }
-            TimesNode { Kind = Operator Comma; Times = 1 } ] }
-    TimesNode { Kind = LeftBigParentheses; Times = 1 } ]
-
-let isAssignObject = isObject @ isAssign
-
-type Behavior =
-  { Kind: RecognizeNode list
-    Name: string }
-
-let behaviorSet =
-  [ { Kind = isAssignString
-      Name = "assign string" }
-    { Kind = isAssignNumber
-      Name = "assign number" }
-    { Kind = isAssignBool
-      Name = "assign bool" }
-    { Kind = isAssignObject
-      Name = "assign object" }
-    { Kind = isFunctionDeclare
-      Name = "function declare" } ]
 
 //let guessDeclareFunction (context: AST list) =
 //    let find = getAstKind context
@@ -257,7 +165,7 @@ let rec eval (context: AST list) (target: string) =
               yield! evalx template.Kind m ]
 
 let guessBehavior line =
-  let guess behavior =
+  let guess (behavior: Behavior) =
     //    console.log("guessing", line, "is", behavior.Name)
     let ctx = eval [] line
     if ctx.Length = 0 then
@@ -283,7 +191,7 @@ let guessBehavior line =
 //let judge = recognize isFunctionDeclare context
 //console.log ("match isFunctionDeclare", judge)
 
-for (i, line) in seq { for i in 0 .. 7 -> (i, testsLines.[i]) } do
+for (i, line) in seq { for i in 0 .. 9 -> (i, testsLines.[i]) } do
   console.log (i, line, eval [] line |> List.toArray, guessBehavior line |> List.toArray)
 
 type ASTCollector = { Source: string; Ast: AST [] }

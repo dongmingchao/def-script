@@ -5,6 +5,7 @@
   <ItemGroup>
     <Compile Include="lib/core/BuildInRegex.fs" />
     <Compile Include="lib/parser/Assignment.fs" />
+    <Compile Include="lib\parser\Behavior.fs" />
     <Compile Include="tests/target.fs" />
     <Compile Include="pages/Home.fs" />
     <Compile Include="App.fs" />
