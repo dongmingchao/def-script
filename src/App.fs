@@ -33,7 +33,7 @@ let (?=) a b = a = Some b
 
 let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
   let find = getAstKind context
-  //  console.log ("reco one", recoNode, List.toArray context)
+//  console.log ("reco one", recoNode, List.toArray context)
 
   match recoNode with
   | TimesNode m ->
@@ -96,7 +96,7 @@ and recognize (recoList: RecognizeNode list) (context: AST list) =
   let notMatch =
     List.tryFindIndex matchEach [ 0 .. recoList.Length - 1 ]
 
-  //  console.log ("not match", List.toArray context, List.toArray recoList, notMatch, cursor)
+//  console.log ("not match", List.toArray context, List.toArray recoList, notMatch, cursor)
   cursor
 
 
@@ -114,7 +114,7 @@ and recognize (recoList: RecognizeNode list) (context: AST list) =
 let rec eval (context: AST list) (target: string) =
   let evalx kind (progma: Match) =
     let catched = AST(kind, string progma.Value)
-    //    console.log ("catched", progma.Value, target, Array.ofList context, progma.Value.Length < target.Length)
+//    console.log ("catched", catched, progma.Value, target, Array.ofList context, progma.Value.Length < target.Length)
     //        console.log ("is declare function ?", guessDeclareFunction context)
     [ if progma.Value.Length < target.Length then
         let next =
@@ -164,17 +164,19 @@ let rec eval (context: AST list) (target: string) =
               matched <- true
               yield! evalx template.Kind m ]
 
-let guessBehavior line =
+let isNextLine (ast: AST) =
+  ast.Kind ?= Indentation NextLine
+
+let guessBehavior (ctx: AST list) =
   let guess (behavior: Behavior) =
-    //    console.log("guessing", line, "is", behavior.Name)
-    let ctx = eval [] line
+//    console.log("guessing", List.toArray ctx, "is", behavior.Name)
     if ctx.Length = 0 then
       false
     else
       let fin = recognize behavior.Kind ctx
       fin = ctx.Length
 
-  List.filter guess behaviorSet
+  List.tryFindIndex guess behaviorSet
 
 //let context2 = eval [] testsLines.[1]
 //console.log ("eval string assignment", context2 |> List.toArray)
@@ -191,8 +193,27 @@ let guessBehavior line =
 //let judge = recognize isFunctionDeclare context
 //console.log ("match isFunctionDeclare", judge)
 
-for (i, line) in seq { for i in 0 .. 9 -> (i, testsLines.[i]) } do
-  console.log (i, line, eval [] line |> List.toArray, guessBehavior line |> List.toArray)
+let mutable stack: AST list = []
+
+type Scope = {
+  Name: string
+}
+
+for (i, line) in seq { for i in 0 .. 12 -> (i, testsLines.[i]) } do
+  let ctx = eval stack line
+  let expression = ctx @ stack
+  let guessResult = guessBehavior expression
+  if (guessResult.IsNone && ctx.Length <> 0) then
+    stack <- AST(Indentation NextLine, "next line")::expression
+  elif guessResult.IsSome then
+    stack <- []
+    let behavior = behaviorSet.[guessResult.Value]
+    match guessResult with
+    | Some 5 ->
+      console.log({| Key = expression.[2].Value; Value = expression.[0].Value|})
+    | _ ->
+      console.log(behavior.Name)
+  console.log (i, expression |> List.toArray)
 
 type ASTCollector = { Source: string; Ast: AST [] }
 
