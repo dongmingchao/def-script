@@ -1,22 +1,5 @@
 ﻿module lib.core.BuildInRegex
 
-//[<Literal>]
-//let Word = "[A-z]\w*"
-//[<Literal>]
-//let LeftParentheses = "\("
-//let RightParentheses = "\)"
-//let Arrow = " =>"
-//let Indentation = "\t"
-//let Assignment = " = ?"
-//type Operator = | Assignment
-//
-//[<Literal>]
-//let Number = "\d+"
-//[<Literal>]
-//let String = "'(.+)'"
-//[<Literal>]
-//let Boolean = "(true|false)"
-
 let BuildInRegexs =
   {| Word = "[A-z]\w*"
      LeftParentheses = "\("

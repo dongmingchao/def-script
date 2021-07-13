@@ -10,11 +10,6 @@ open lib.core.BuildInRegex
 
 ReactDom.render (div [] [ str "Editor"; view ], document.getElementById "root")
 
-type AST = {
-  Kind: ASTKind
-  Value: string
-}
-
 let target = testsLines.[16]
 
 let (|Regex|_|) pattern input =
@@ -23,76 +18,71 @@ let (|Regex|_|) pattern input =
 
   if m.Success then Some(m) else None
 
-let getAstKind (context: AST list) index =
+let getAstKind (context: ASTNode list) index =
   let ret = (List.tryItem index context)
   if ret.IsSome then Some ret.Value.Kind else None
 
 let (?=) a b = a = Some b
 
-(**
-识别出一个模式节点是否匹配一串AST，返回匹配到的位置索引
-*)
-
-let rec recognizeOne (recoNode: RecognizeNode) (context: AST list) =
-  let find = getAstKind context
-//  console.log ("reco one", recoNode, List.toArray context)
-
-  match recoNode with
-  | TimesNode m ->
-      let findNotMatch r = m.Kind(find r) |> not
-        //            console.log("find not match", find (index + r), m.Kind, index, r)
-//        not ((find r) ?= m.Kind)
-
-      if m.Times > 0 then
-        let notMatch =
-          List.tryFindIndex findNotMatch [ 0 .. m.Times - 1 ]
-
-        if notMatch.IsNone then Some m.Times else None
-      else
-        None
-  | RangeNode m ->
-      let findNotMatch r = not (find r ?= m.Kind)
-
-      let notMatchMin =
-        List.tryFindIndex findNotMatch [ 0 .. m.Min - 1 ]
-      if notMatchMin.IsSome then
-        None
-      else
-        let notMatchMax =
-          List.tryFindIndex findNotMatch [ m.Min .. m.Max - 1 ]
-        //        console.log("range node max", m, notMatchMax)
-
-        if notMatchMax.IsSome then notMatchMax else Some m.Max
-  | RepeatNode m ->
-      let kind = m.Kind()
-//      console.log("repeat", context |> List.toArray)
-      let mutable ret: int = recognize kind context
-      let mutable step = ret
-
-      while ret < context.Length && step <> 0 do
-        step <- recognize kind context.[ret..]
-        ret <- ret + step
-//        console.log("repeat", ret, step)
-      Some ret
-   | _ -> None
-
-and recognize (recoList: RecognizeNode list) (context: AST list) =
+let rec recognize (recoList: RecognizeTimesNode list) (context: ASTNode list) =
+  
+  (** 识别出一个模式节点是否匹配一串AST，返回匹配到的位置索引 *)
+//  let recognizeOne (recoNode: RecognizeNode) (context: ASTNode list) =
+//  //  console.log ("reco one", recoNode, List.toArray context)
+//    match recoNode with
+//    | TimesNode m ->
+//        let findNotMatch r = m.Kind recognize context r |> not
+//          //            console.log("find not match", find (index + r), m.Kind, index, r)
+//  //        not ((find r) ?= m.Kind)
+//
+//        if m.Times > 0 then
+//          let notMatch =
+//            List.tryFindIndex findNotMatch [ 0 .. m.Times - 1 ]
+//
+//          if notMatch.IsNone then Some m.Times else None
+//        else
+//          None
+//    | RangeNode m ->
+//        let find = getAstKind context
+//        let findNotMatch r = not (find r ?= m.Kind)
+//
+//        let notMatchMin =
+//          List.tryFindIndex findNotMatch [ 0 .. m.Min - 1 ]
+//        if notMatchMin.IsSome then
+//          None
+//        else
+//          let notMatchMax =
+//            List.tryFindIndex findNotMatch [ m.Min .. m.Max - 1 ]
+//          //        console.log("range node max", m, notMatchMax)
+//
+//          if notMatchMax.IsSome then notMatchMax else Some m.Max
+//    | RepeatNode m ->
+//        let kind = m.Kind()
+//  //      console.log("repeat", context |> List.toArray)
+//        let mutable ret: int = recognize kind context
+//        let mutable step = ret
+//
+//        while ret < context.Length && step <> 0 do
+//          step <- recognize kind context.[ret..]
+//          ret <- ret + step
+//  //        console.log("repeat", ret, step)
+//        Some ret
+//     | _ -> None
+//  
   let mutable cursor = 0
-
   let matchEach i =
     if (cursor > context.Length) then false
     else
-      let ret =
-        recognizeOne recoList.[i] context.[cursor..]
+      let ret = recoList.[i].Kind recognize context.[cursor..]
 
       if ret.IsSome then
         cursor <- ret.Value + cursor
       ret.IsNone
 
-//  console.log ("not match", List.toArray recoList, List.toArray context, cursor)
   let notMatch =
     List.tryFindIndex matchEach [ 0 .. recoList.Length - 1 ]
 //  if notMatch.IsSome then
+//    console.log ("not match", notMatch, List.toArray recoList, List.toArray context, cursor)
   cursor
 
 
@@ -107,7 +97,7 @@ and recognize (recoList: RecognizeNode list) (context: AST list) =
 //           i <- i + 1
 //       find i ?= LeftParentheses && find (i + 1) ?= Word
 
-let rec eval (context: AST list) (target: string) =
+let rec eval (context: ASTNode list) (target: string) =
   let evalx kind (progma: Match) =
     let catched = { Kind = kind; Value = progma.Value }
 //    console.log ("catched", catched, progma.Value, target, Array.ofList context, progma.Value.Length < target.Length)
@@ -160,10 +150,10 @@ let rec eval (context: AST list) (target: string) =
               matched <- true
               yield! evalx template.Kind m ]
 
-let isNextLine (ast: AST) =
+let isNextLine (ast: ASTNode) =
   ast.Kind = Indentation NextLine
 
-let guessBehavior (ctx: AST list) =
+let guessBehavior (ctx: ASTNode list) =
   let guess (KeyValue(name: BehaviorType, behavior)) =
 //    console.log("guessing", name, behavior |> List.toArray, List.toArray ctx)
     if ctx.Length = 0 then
@@ -177,8 +167,13 @@ let guessBehavior (ctx: AST list) =
 type Context =
   { kind: ASTKind
     scope: Scope
-    elements: AST list }
+    elements: ASTNode list }
 and Scope = IDictionary<string, Context>
+
+let isValueType kind =
+  match kind with
+  | ValueType _ -> true
+  | _ -> false
 
 let rec parseContext ctx :Context =
   match ctx.kind with
@@ -197,7 +192,7 @@ let rec parseContext ctx :Context =
           cursor <- cursor + 1
         | _ ->
           ignore 0
-      | [ value; colon; key ] when colon.Kind = Colon && key.Kind = Word && IsValueType(Some value.Kind) ->
+      | [ value; colon; key ] when colon.Kind = Colon && key.Kind = Word && isValueType value.Kind ->
         let subCtx = parseContext { kind = value.Kind; scope = dict[]; elements = [value] }
         let current = subContexts.[subContexts.Count - 1]
         current.scope.Add(key.Value, subCtx)
@@ -222,7 +217,7 @@ let rec parseContext ctx :Context =
   | _ ->
     ctx        
 
-let mutable stack: AST list = []  
+let mutable stack: ASTNode list = []  
 
 for i, line in seq { for i in 0 .. 14 -> (i, testsLines.[i]) } do
   let ctx = eval stack line
@@ -251,4 +246,4 @@ for i, line in seq { for i in 0 .. 14 -> (i, testsLines.[i]) } do
 //    | Some when kind = isAssign ->             
 //      console.log({| Key = expression.[2].Value; Value = expression.[0].Value|})
 
-type ASTCollector = { Source: string; Ast: AST [] }
+type ASTCollector = { Source: string; Ast: ASTNode [] }
