@@ -81,8 +81,8 @@ let rec recognize (recoList: RecognizeTimesNode list) (context: ASTNode list) =
 
   let notMatch =
     List.tryFindIndex matchEach [ 0 .. recoList.Length - 1 ]
-//  if notMatch.IsSome then
-//    console.log ("not match", notMatch, List.toArray recoList, List.toArray context, cursor)
+  if notMatch.IsSome && notMatch.Value <> 0 then
+    console.log ("not match", recoList.[notMatch.Value], List.toArray context.[cursor..], cursor)
   cursor
 
 
@@ -155,10 +155,10 @@ let isNextLine (ast: ASTNode) =
 
 let guessBehavior (ctx: ASTNode list) =
   let guess (KeyValue(name: BehaviorType, behavior)) =
-//    console.log("guessing", name, behavior |> List.toArray, List.toArray ctx)
     if ctx.Length = 0 then
       false
     else
+      console.log("guessing", name, List.toArray ctx)
       let fin = recognize behavior ctx
 //      console.log("guessing fin", fin)
       fin = ctx.Length

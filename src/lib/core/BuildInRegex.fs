@@ -6,7 +6,7 @@ let BuildInRegexs =
      RightParentheses = "\)"
      LeftBigParentheses = "\{ "
      RightBigParentheses = " \}"
-     Colon = ": "
+     Colon = ": ?"
      KeyWord = {| If = "if"; For = "for" |}
      Operator =
        {| Assignment = " = ?"

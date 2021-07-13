@@ -79,9 +79,17 @@ let isAssign =
 //    TimesNode { Kind = ValueType Boolean; Times = 1 }
 //    :: isAssign
 
-let isIndent () = [TimesNode { Kind = Indentation Tab |> isASTKind; Times = 1 }]
+//let isIndent () = [TimesNode { Kind = Indentation Tab |> isASTKind; Times = 1 }]
 
-let IsValueTypeAnd (others: unit -> RecognizeTimesNode list) (recognize: RecognizeTimesNode list -> ASTNode list -> int) (context: ASTNode list) =
+let isValueType (recognize: RecognizeTimesNode list -> ASTNode list -> int) (context: ASTNode list) =
+  match List.tryHead context with
+  | Some h ->
+      match h.Kind with
+      | ValueType _ -> Some 1
+      | _ -> None
+  | _ -> None
+
+let isValueTypeAnd (others: unit -> RecognizeTimesNode list) (recognize: RecognizeTimesNode list -> ASTNode list -> int) (context: ASTNode list) =
   match context.Head.Kind with
   | ValueType _ ->
       Some 1
@@ -102,18 +110,23 @@ let IsValueTypeAnd (others: unit -> RecognizeTimesNode list) (recognize: Recogni
 //            Times = 1 }]
 //
 let rec isInlineEntry () = [
-   { Kind = IsValueTypeAnd isInlineObject; Times = 1 }
+   { Kind = isValueTypeAnd isInlineObject; Times = 1 }
    { Kind = isASTKind Colon; Times = 1 }
    { Kind = isASTKind Word; Times = 1 }
    { Kind = Operator Comma |> isASTKind; Times = 1 } ]
-//and isInlineObject (): RecognizeNode list =
-//    [ TimesNode
-//        { Kind = isASTKind RightBigParentheses
-//          Times = 1 }
-//      RepeatNode
-//          { Type = White
-//            Kind = isInlineEntry }
-//      TimesNode { Kind = isASTKind LeftBigParentheses; Times = 1 } ]
+and isInlineObject () = [
+    { Kind = isASTKind RightBigParentheses; Times = 1 }
+    { Kind = isRepeatNode (isInlineEntry()); Times = 1 }
+    { Kind = isASTKind LeftBigParentheses; Times = 1 }
+]
+
+let rec isEntry () = [
+    { Kind = isValueType; Times = 1 }
+    { Kind = isASTKind Colon; Times = 1 }
+    { Kind = isASTKind Word; Times = 1 }
+    { Kind = isRepeatNode [{ Kind = Indentation Tab |> isASTKind; Times = 1 }]; Times = 1 }
+    { Kind = Indentation NextLine |> isASTKind; Times = 1 }
+]
 
 //and isObject: RecognizeNode list =
 //  [ TimesNode
@@ -140,14 +153,7 @@ let rec isInlineEntry () = [
 //            TimesNode { Kind = Operator Comma; Times = 1 } ] }
 //    TimesNode { Kind = LeftBigParentheses; Times = 1 } ]
 //
-//let isAssignInlineObject () = isInlineObject() @ isAssign
 //let isAssignObject () = isEntry () @ isAssign
-
-and isInlineObject () = [
-    { Kind = isASTKind RightBigParentheses; Times = 1 }
-    { Kind = isRepeatNode (isInlineEntry()); Times = 1 }
-    { Kind = isASTKind LeftBigParentheses; Times = 1 }
-]
 
 type BehaviorType =
     | AssignString
@@ -171,6 +177,7 @@ let behaviors = dict [
     AssignNumber, { Kind = ValueType ValueType.Number |> isASTKind; Times = 1 }::isAssign
     AssignBoolean, { Kind = ValueType Boolean |> isASTKind; Times = 1 }::isAssign
     AssignInlineObject, isInlineObject() @ isAssign
+    AssignObject, isEntry() @ isAssign
 ]
 
 //let behaviorSet =
